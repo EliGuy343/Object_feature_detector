@@ -54,14 +54,19 @@ while True:
     elif select == False and cropped == True and redraw == False:
         kp1, des1, img_copy = detect_features(img[y_start:y_end, x_start:x_end])
         redraw = True
-        Cropped = False
+        cropped = False
 
     if redraw:
         kp2, des2, _ = detect_features(img)
-        matches = bf.match(des1, des2)
-        matches = sorted(matches, key=lambda x: x.distance)
-        matching_result = cv2.drawMatches(img_copy, kp1, img, kp2, matches, None)
-        cv2.imshow("result", matching_result)
+        if(len(kp2) > 1):
+            matches = bf.match(des1, des2)
+            matches = sorted(matches, key=lambda x: x.distance)
+            matching_result = cv2.drawMatches(img_copy, kp1, img, kp2, matches, None)
+            cv2.imshow("result", matching_result)
+        else:
+            redraw = False
+            cv2.destroyWindow("result")
+            cv2.imshow("image", img)
     else:
         cv2.imshow("image", img)
 
