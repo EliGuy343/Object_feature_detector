@@ -32,14 +32,15 @@ def mouse_select(event, x, y, flags, params):
             cropped = True
 
 
-def detect_features(crop):
-    orb = cv2.ORB_create(nfeatures=1000, scoreType=cv2.ORB_HARRIS_SCORE)
+def detect_features(crop, mask=None):
+    orb = cv2.ORB_create(nfeatures=700, scoreType=cv2.ORB_HARRIS_SCORE)
     img_copy = crop.copy()
     roi = img_copy
+
     hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
     roi_hist = cv2.calcHist([hsv_roi], [0], None, [180], [0, 180])
-    kp1, des1 = orb.detectAndCompute(img_copy, None)
-    return [kp1, des1, img_copy]
+    kp1, des1 = orb.detectAndCompute(img_copy, mask)
+    return [kp1, des1, roi_hist, img_copy]
 
 
 cv2.namedWindow("image")
@@ -52,23 +53,32 @@ while True:
         cv2.rectangle(img, (x_start, y_start), (x_end, y_end), (0, 255, 0), 2)
         cv2.imshow("image", img)
     elif select == False and cropped == True and redraw == False:
-        kp1, des1, img_copy = detect_features(img[y_start:y_end, x_start:x_end])
+        kp1, des1, roi_hist, img_copy = detect_features(img[y_start:y_end, x_start:x_end])
+        print(img[y_start:y_end, x_start:x_end])
         redraw = True
         cropped = False
 
     if redraw:
-        kp2, des2, _ = detect_features(img)
+        hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        mask = cv2.calcBackProject([hsv_img], [0, 1], roi_hist, [0, 180, 0, 256], 1)
+        _ ,mask = cv2.threshold(mask, 50, 255,cv2.THRESH_BINARY)
+        kp2, des2, _, _ = detect_features(img, mask)
+
         if(len(kp2) > 1):
+            cv2.imshow("mask", mask)
             matches = bf.match(des1, des2)
             matches = sorted(matches, key=lambda x: x.distance)
-            matching_result = cv2.drawMatches(img_copy, kp1, img, kp2, matches, None)
+            matching_result = cv2.drawMatches(img_copy, kp1, img, kp2, matches[0:60], None)
             cv2.imshow("result", matching_result)
+
+
         else:
             redraw = False
             cv2.destroyWindow("result")
             cv2.imshow("image", img)
     else:
         cv2.imshow("image", img)
+
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
