@@ -61,16 +61,14 @@ while True:
     if redraw:
         hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         mask = cv2.calcBackProject([hsv_img], [0, 1], roi_hist, [0, 180, 0, 256], 1)
-        _ ,mask = cv2.threshold(mask, 50, 255,cv2.THRESH_BINARY)
+        _, mask = cv2.threshold(mask, 50, 220, cv2.THRESH_BINARY)
         kp2, des2, _, _ = detect_features(img, mask)
 
-        if(len(kp2) > 1):
-            cv2.imshow("mask", mask)
+        if len(kp2) > 1:
             matches = bf.match(des1, des2)
             matches = sorted(matches, key=lambda x: x.distance)
             matching_result = cv2.drawMatches(img_copy, kp1, img, kp2, matches[0:60], None)
             cv2.imshow("result", matching_result)
-
 
         else:
             redraw = False
@@ -78,7 +76,6 @@ while True:
             cv2.imshow("image", img)
     else:
         cv2.imshow("image", img)
-
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
