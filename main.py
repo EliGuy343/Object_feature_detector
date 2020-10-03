@@ -45,6 +45,14 @@ def detect_features(crop, mask=None):
 
 cv2.namedWindow("image")
 cv2.setMouseCallback("image", mouse_select)
+FLANN_INDEX_KDTREE = 0
+index_params = dict(algorithm=FLANN_INDEX_KDTREE, trees=5)
+search_params = dict(checks=50)
+FlannMatcher = cv2.FlannBasedMatcher(index_params, search_params)
+draw_params = dict(matchColor = (0, 255, 0), singlePointColor=None, flags=2)
+
+
+
 bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 
 while True:
@@ -61,13 +69,18 @@ while True:
     if redraw:
         hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
         mask = cv2.calcBackProject([hsv_img], [0, 1], roi_hist, [0, 180, 0, 256], 1)
-        _, mask = cv2.threshold(mask, 80, 235, cv2.THRESH_BINARY)
+       #_, mask = cv2.threshold(mask, 40, 255, cv2.THRESH_BINARY)
         kp2, des2, _, _ = detect_features(img, mask)
 
         if len(kp2) > 1:
-            matches = bf.match(des1, des2)
-            matches = sorted(matches, key=lambda x: x.distance)
-            matching_result = cv2.drawMatches(img_copy, kp1, img, kp2, matches[0:30], None)
+            des1 = np.float32(des1)
+            des2 = np.float32(des2)
+            matches = FlannMatcher.knnMatch(des1, des2, k=2)
+            good = []
+            for m, n in matches:
+                if m.distance < 0.65* n.distance:
+                    good.append([m])
+            matching_result = cv2.drawMatchesKnn(img_copy, kp1, img, kp2, good, None,**draw_params)
             cv2.imshow("result", matching_result)
 
         else:
